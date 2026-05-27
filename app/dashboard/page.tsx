@@ -118,7 +118,7 @@ export default function Dashboard() {
         <div style={{background:'rgba(22,199,97,0.07)',border:'1px solid rgba(22,199,97,0.2)',borderRadius:12,padding:'14px 20px',display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:24}}>
           <div>
             <div style={{fontWeight:700,marginBottom:3}}>✦ Upgrade to Pro</div>
-            <div style={{fontSize:'0.8rem',color:'#6B7280'}}>Unlimited scans + 7-day free trial — $4.99/month</div>
+            <div style={{fontSize:'0.8rem',color:'#6B7280'}}>Unlimited scans — One-time payment $9.99</div>
           </div>
           <button onClick={upgrade} style={{background:'#16C761',color:'#000',border:'none',borderRadius:10,padding:'8px 18px',fontWeight:700,cursor:'pointer'}}>Get Pro →</button>
         </div>

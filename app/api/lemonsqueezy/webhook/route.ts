@@ -15,8 +15,8 @@ export async function POST(req: NextRequest) {
   const userId  = payload.meta?.custom_data?.user_id;
   if (!userId) return NextResponse.json({ ok: true });
 
-  const isActive    = ['subscription_created','subscription_payment_success'].includes(event) && ['active','on_trial'].includes(data.status);
-  const isCancelled = ['subscription_cancelled','subscription_expired'].includes(event);
+  const isActive    = ['order_created'].includes(event);
+  const isCancelled = false;
 
   if (isActive) {
     await prisma.user.update({ where:{ id:userId }, data:{ isPro:true, lsCustomerId:String(data.customer_id||''), lsSubscriptionId:String(data.id||'') } });
