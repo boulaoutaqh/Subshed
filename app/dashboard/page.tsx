@@ -16,12 +16,14 @@ export default function Dashboard() {
   const [scanning, setScanning] = useState(false);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState('');
+  const [isPro, setIsPro] = useState(false);
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login');
     if (status === 'authenticated') load();
     if (window.location.search.includes('success=true')) {
-      showToast('🚀 Welcome to Pro! All features unlocked.');
+      setIsPro(true);
+      showToast('🎉 Welcome to Pro! All features unlocked.');
       window.history.replaceState({}, '', '/dashboard');
     }
   }, [status]);
@@ -32,10 +34,15 @@ export default function Dashboard() {
     const data = await res.json();
     setSubs(data.subscriptions || []);
     setTotal(data.monthlyTotal || 0);
+    setIsPro(data.isPro || false);
     setLoading(false);
   }
 
   async function scan() {
+    if (!isPro) {
+      showToast('🔒 Subscribe first to scan your email!');
+      return;
+    }
     setScanning(true);
     showToast('🔍 Scanning your inbox...');
     const res = await fetch('/api/scan', { method: 'POST' });
@@ -115,13 +122,17 @@ export default function Dashboard() {
             </div>
           ))}
         </div>
-        <div style={{background:'rgba(22,199,97,0.07)',border:'1px solid rgba(22,199,97,0.2)',borderRadius:12,padding:'14px 20px',display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:24}}>
-          <div>
-            <div style={{fontWeight:700,marginBottom:3}}>✦ Upgrade to Pro</div>
-            <div style={{fontSize:'0.8rem',color:'#6B7280'}}>Unlimited scans — One-time payment $9.99</div>
+
+        {!isPro && (
+          <div style={{background:'rgba(22,199,97,0.07)',border:'1px solid rgba(22,199,97,0.2)',borderRadius:12,padding:'14px 20px',display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:24}}>
+            <div>
+              <div style={{fontWeight:700,marginBottom:3}}>✨ Upgrade to Pro</div>
+              <div style={{fontSize:'0.8rem',color:'#6B7280'}}>Unlimited scans — One-time payment $9.99</div>
+            </div>
+            <button onClick={upgrade} style={{background:'#16C761',color:'#000',border:'none',borderRadius:10,padding:'8px 18px',fontWeight:700,cursor:'pointer'}}>Get Pro</button>
           </div>
-          <button onClick={upgrade} style={{background:'#16C761',color:'#000',border:'none',borderRadius:10,padding:'8px 18px',fontWeight:700,cursor:'pointer'}}>Get Pro →</button>
-        </div>
+        )}
+
         <div style={{background:'#0D1117',border:'1px solid rgba(255,255,255,0.07)',borderRadius:12}}>
           <div style={{padding:'14px 20px',borderBottom:'1px solid rgba(255,255,255,0.07)',display:'flex',justifyContent:'space-between'}}>
             <span style={{fontWeight:700}}>Your Subscriptions</span>
@@ -131,10 +142,10 @@ export default function Dashboard() {
             <div style={{padding:'60px 24px',textAlign:'center',color:'#6B7280'}}>
               <div style={{fontSize:'3rem',marginBottom:10}}>🔍</div>
               <div style={{fontWeight:600,marginBottom:6}}>No subscriptions yet</div>
-              <div style={{fontSize:'0.82rem'}}>Click "Scan Now" to find all your subscriptions</div>
+              <div style={{fontSize:'0.82rem'}}>{isPro ? 'Click "Scan Now" to find all your subscriptions' : '🔒 Subscribe to scan your email'}</div>
             </div>
           ) : subs.map((s,i) => (
-            <div key={s.id} style={{display:'grid',gridTemplateColumns:'40px 1fr 90px 110px',alignItems:'center',padding:'14px 20px',borderBottom:i<subs.length-1?'1px solid rgba(255,255,255,0.05)':'none'}}>
+            <div key={s.id} style={{display:'grid',gridTemplateColumns:'40px 1fr 90px 110px',alignItems:'center',padding:'14px 20px',borderBottom:i<subs.length-1?'1px solid rgba(255,255,255,0.07)':'none'}}>
               <div style={{width:36,height:36,borderRadius:10,background:'rgba(255,255,255,0.05)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'1.1rem'}}>
                 {s.serviceIcon || '📦'}
               </div>
