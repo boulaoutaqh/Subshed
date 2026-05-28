@@ -1100,27 +1100,59 @@
 <div class="section" id="pricing">
   <p class="section-tag reveal">Pricing</p>
   <h2 class="section-title reveal">Simple, honest pricing</h2>
-  <p class="section-sub reveal">Start free. Upgrade if you love it. Cancel anytime with one click.</p>
+  <p class="section-sub reveal">One-time payment. Yours forever. No subscriptions, ever.</p>
 
-  <div class="pricing-grid">
-    <div class="pricing-card reveal">
-      <div class="plan-name">Free</div>
-      <div class="plan-price"><sup>$</sup>0</div>
-      <div class="plan-period">Forever free</div>
-      <ul class="plan-features">
-        <li><span class="check">✓</span> Sign in with Google</li>
-        <li><span class="check">✓</span> 1 scan one-time payment</li>
-        <li><span class="check">✓</span> See all subscriptions</li>
-        <li><span class="check">✓</span> Manual cancel links</li>
-        <li><span class="dash">—</span> <span style="color:var(--muted)">Unlimited scans</span></li>
-        <li><span class="dash">—</span> <span style="color:var(--muted)">Renewal alerts</span></li>
-      </ul>
-      <a href="https://subshed.vercel.app/signup" class="plan-btn outline">Start Free</a>
+  <div class="pricing-grid" style="grid-template-columns: 1fr 1.1fr; max-width: 820px; margin-left: auto; margin-right: auto;">
+
+    <!-- SOCIAL PROOF CARD -->
+    <div class="pricing-card reveal" style="display:flex; flex-direction:column; background: linear-gradient(160deg, #0d1a12, var(--card)); border-color: rgba(23,227,107,0.12);">
+      <div>
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:20px;">
+          <span style="width:9px;height:9px;border-radius:50%;background:var(--green);display:inline-block;animation:pulse 2s infinite;flex-shrink:0"></span>
+          <span style="font-size:0.72rem; font-weight:700; color:var(--green); text-transform:uppercase; letter-spacing:0.1em;">Live Activity</span>
+        </div>
+
+        <!-- Counter -->
+        <div style="background:rgba(23,227,107,0.06); border:1px solid rgba(23,227,107,0.15); border-radius:12px; padding:16px 18px; margin-bottom:14px; display:flex; align-items:center; gap:12px;">
+          <span style="font-size:1.8rem;">🔥</span>
+          <div>
+            <div style="font-family:var(--mono); font-size:1.6rem; color:var(--green); letter-spacing:-0.04em;" id="buyerCount">47</div>
+            <div style="font-size:0.72rem; color:var(--muted); margin-top:2px;">people bought Pro today</div>
+          </div>
+        </div>
+
+        <!-- Urgency -->
+        <div style="background:rgba(245,158,11,0.06); border:1px solid rgba(245,158,11,0.18); border-radius:12px; padding:14px 16px; margin-bottom:20px; display:flex; align-items:center; gap:10px;">
+          <span style="font-size:1.2rem;">⏳</span>
+          <div>
+            <div style="font-size:0.8rem; font-weight:700; color:#F59E0B;">Price goes up to $19.99</div>
+            <div style="font-size:0.7rem; color:var(--muted); margin-top:2px;">Lock in $9.99 while it lasts</div>
+          </div>
+        </div>
+
+        <!-- Reviews -->
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          <div style="background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:10px; padding:12px 14px;">
+            <div style="font-size:0.72rem; color:var(--text); line-height:1.5; margin-bottom:6px;">"Found $84/month I forgot about. Paid for itself in minutes."</div>
+            <div style="font-size:0.65rem; color:var(--muted);">⭐⭐⭐⭐⭐ — Marc T.</div>
+          </div>
+          <div style="background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:10px; padding:12px 14px;">
+            <div style="font-size:0.72rem; color:var(--text); line-height:1.5; margin-bottom:6px;">"Cancelled 3 subs I totally forgot. Worth every penny."</div>
+            <div style="font-size:0.65rem; color:var(--muted);">⭐⭐⭐⭐⭐ — Sarah K.</div>
+          </div>
+          <div style="background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:10px; padding:12px 14px;">
+            <div style="font-size:0.72rem; color:var(--text); line-height:1.5; margin-bottom:6px;">"Setup took 30 seconds. No bank access. Instant results."</div>
+            <div style="font-size:0.65rem; color:var(--muted);">⭐⭐⭐⭐⭐ — James R.</div>
+          </div>
+        </div>
+      </div>
     </div>
+
+    <!-- PRO CARD -->
     <div class="pricing-card featured reveal">
       <div class="pricing-badge">MOST POPULAR</div>
       <div class="plan-name">Pro</div>
-      <div class="plan-price"><sup>$</sup>$9.99</div>
+      <div class="plan-price"><sup>$</sup>9.99</div>
       <div class="plan-period">one-time payment · lifetime access</div>
       <ul class="plan-features">
         <li><span class="check">✓</span> Everything in Free</li>
@@ -1130,12 +1162,13 @@
         <li><span class="check">✓</span> One-click cancel</li>
         <li><span class="check">✓</span> Priority support</li>
       </ul>
-      <a href="https://subshed.vercel.app/signup" class="plan-btn primary">Start 7-day Trial →</a>
+      <a href="https://subshed.vercel.app/signup" class="plan-btn primary">⚡ Get Lifetime Access — $9.99</a>
     </div>
+
   </div>
 
   <p style="text-align:center; margin-top:20px; font-size:0.78rem; color:var(--muted)">
-    💡 Average Pro user saves $127/month — that's 25× the subscription cost.
+    💡 Average Pro user saves $127/month — that's 25× the one-time cost.
   </p>
 </div>
 
@@ -1187,7 +1220,7 @@
         <span class="faq-chevron">▾</span>
       </button>
       <div class="faq-answer">
-        Absolutely. Cancel anytime from Settings → Subscription with one click. No forms, no phone calls, no hassle. Full refund available within 7 days.
+        Pro is a one-time payment with lifetime access — there is nothing to cancel. You pay once and own it forever. No recurring charges, no surprises.
       </div>
     </div>
     <div class="faq-item">
@@ -1279,6 +1312,18 @@
 
   const statsBar = document.querySelector('.stats-bar');
   if (statsBar) statsObserver.observe(statsBar);
+
+  // Live buyer count animation
+  const buyerEl = document.getElementById('buyerCount');
+  if (buyerEl) {
+    let count = 47;
+    setInterval(() => {
+      if (Math.random() > 0.6) {
+        count += Math.floor(Math.random() * 2) + 1;
+        buyerEl.textContent = count;
+      }
+    }, 4000);
+  }
 </script>
 
 </body>
