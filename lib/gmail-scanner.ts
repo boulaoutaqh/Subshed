@@ -1,7 +1,7 @@
 import { google } from 'googleapis';
 
 // ============================================================
-// القوائم: الخدمات المعروفة (سريعة، مجانية، بلا AI)
+// القوائم: الخدمات المعروفة (سريعة، مجانية، على المرسل)
 // ============================================================
 const SERVICES: Record<string, { name: string; icon: string; cancelUrl: string }> = {
   'netflix.com':       { name: 'Netflix',        icon: '🎬', cancelUrl: 'https://www.netflix.com/cancelplan' },
@@ -25,7 +25,6 @@ const SERVICES: Record<string, { name: string; icon: string; cancelUrl: string }
   'planetfitness.com': { name: 'Planet Fitness', icon: '🏋️', cancelUrl: 'https://www.planetfitness.com/members' },
   'anthropic.com':     { name: 'Claude Pro',     icon: '🤖', cancelUrl: 'https://claude.ai/settings/billing' },
   'claude.ai':         { name: 'Claude Pro',     icon: '🤖', cancelUrl: 'https://claude.ai/settings/billing' },
-  // خدمات مغربية / فرنسية مضافة
   'orange.ma':         { name: 'Orange',         icon: '📱', cancelUrl: 'https://www.orange.ma' },
   'orange.com':        { name: 'Orange',         icon: '📱', cancelUrl: 'https://www.orange.com' },
   'orange.fr':         { name: 'Orange',         icon: '📱', cancelUrl: 'https://www.orange.fr' },
@@ -44,17 +43,17 @@ function extractDomain(from: string): string | null {
 }
 
 // ============================================================
-// استخراج المبلغ + العملة (متعدد العملات)
+// استخراج المبلغ + العملة من نص (subject أو body)
 // ============================================================
 function extractAmountAndCurrency(text: string): { amount: number; currency: string } | null {
   const patterns: { re: RegExp; cur: string }[] = [
-    { re: /\$\s*(\d{1,4}(?:[.,]\d{2})?)/,                         cur: 'USD' },
-    { re: /(\d{1,4}(?:[.,]\d{2})?)\s*(?:USD|usd)/,                cur: 'USD' },
-    { re: /€\s*(\d{1,4}(?:[.,]\d{2})?)/,                          cur: 'EUR' },
-    { re: /(\d{1,4}(?:[.,]\d{2})?)\s*(?:€|EUR|eur|euros?)/,       cur: 'EUR' },
-    { re: /£\s*(\d{1,4}(?:[.,]\d{2})?)/,                          cur: 'GBP' },
-    { re: /(\d{1,4}(?:[.,]\d{2})?)\s*(?:£|GBP)/,                  cur: 'GBP' },
-    { re: /(\d{1,4}(?:[.,]\d{2})?)\s*(?:MAD|DH|dh|درهم|dhs)/i,    cur: 'MAD' },
+    { re: /\$\s*(\d{1,5}(?:[.,]\d{1,2})?)/,                               cur: 'USD' },
+    { re: /(\d{1,5}(?:[.,]\d{1,2})?)\s*(?:USD|usd)/,                      cur: 'USD' },
+    { re: /€\s*(\d{1,5}(?:[.,]\d{1,2})?)/,                                cur: 'EUR' },
+    { re: /(\d{1,5}(?:[.,]\d{1,2})?)\s*(?:€|EUR|eur|euros?)/,             cur: 'EUR' },
+    { re: /£\s*(\d{1,5}(?:[.,]\d{1,2})?)/,                                cur: 'GBP' },
+    { re: /(\d{1,5}(?:[.,]\d{1,2})?)\s*(?:£|GBP)/,                        cur: 'GBP' },
+    { re: /(\d{1,5}(?:[.,]\d{1,2})?)\s*(?:MAD|DHS?|dhs?|درهم)/i,          cur: 'MAD' },
   ];
   for (const { re, cur } of patterns) {
     const m = text.match(re);
@@ -67,29 +66,72 @@ function extractAmountAndCurrency(text: string): { amount: number; currency: str
 }
 
 // ============================================================
+// استخراج نص خام من body ديال الايميل (يفك base64 وينقي HTML)
+// ============================================================
+function decodeBase64Url(data: string): string {
+  try {
+    const normalized = data.replace(/-/g, '+').replace(/_/g, '/');
+    return Buffer.from(normalized, 'base64').toString('utf-8');
+  } catch {
+    return '';
+  }
+}
+
+function extractBodyText(payload: any): string {
+  let text = '';
+  const walk = (part: any) => {
+    if (!part) return;
+    if (part.body?.data && (part.mimeType === 'text/plain' || part.mimeType === 'text/html')) {
+      text += ' ' + decodeBase64Url(part.body.data);
+    }
+    if (part.parts) part.parts.forEach(walk);
+  };
+  walk(payload);
+  // ننقي HTML tags ونقلّص المسافات
+  return text
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 1500); // نقتطعو باش ما نطولوش ال prompt
+}
+
+// ============================================================
 // طبقة AI: Groq + Llama 3 (عبر fetch، بلا حزمة)
-// كتحلل الايميلات لي ما عرفهومش بالقوائم — بأي لغة
+// كتحلل الايميلات المجهولة بمحتواها — بأي لغة
 // ============================================================
 async function analyzeWithAI(
-  emails: { from: string; subject: string }[]
-): Promise<{ from: string; serviceName: string; amount: number; currency: string }[]> {
+  emails: { from: string; subject: string; body: string }[]
+): Promise<{ index: number; serviceName: string; amount: number; currency: string }[]> {
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey || emails.length === 0) return [];
 
   const list = emails
-    .map((e, i) => `${i + 1}. From: ${e.from} | Subject: ${e.subject}`)
-    .join('\n');
+    .map(
+      (e, i) =>
+        `--- Email ${i + 1} ---\nFrom: ${e.from}\nSubject: ${e.subject}\nContent: ${e.body.slice(0, 600)}`
+    )
+    .join('\n\n');
 
-  const prompt = `You are a subscription detector. Analyze these emails (any language: English, French, Arabic, etc.) and identify which ones are RECURRING SUBSCRIPTION charges or invoices (Netflix, telecom forfait, SaaS, gym, streaming, etc.). Ignore one-time purchases, shipping, ads, newsletters, and security alerts.
+  const prompt = `You are a subscription & recurring-payment detector. Analyze these emails (any language: English, French, Arabic, etc.).
 
-For each email that IS a subscription, return its number, the service name, the amount (number only), and the currency code (USD, EUR, GBP, MAD...). If the amount or currency is unknown, use 0 and "USD".
+Identify ONLY emails that represent a RECURRING SUBSCRIPTION or a PAYMENT/INVOICE for a service (telecom like Orange/Maroc Telecom/inwi, streaming, SaaS, gym, software, etc.). The payment may come from a BANK (e.g. "paiement ORANGE via CIH MOBILE") — in that case the real service is the one being paid FOR (Orange), not the bank.
+
+STRICTLY IGNORE: security alerts, login notifications, welcome emails, password resets, newsletters, marketing/ads, shipping notices, one-time product purchases, and emails from the app "Subshed" itself.
+
+For each REAL subscription/service payment, extract:
+- the service name (the company being paid, e.g. "Orange", not "CIH")
+- the amount (number only, from the content)
+- the currency code (USD, EUR, GBP, MAD...)
 
 Emails:
 ${list}
 
-Respond ONLY with a valid JSON array, no markdown, no explanation. Format:
-[{"index": 1, "serviceName": "Orange", "amount": 199, "currency": "MAD"}]
-If none are subscriptions, return [].`;
+Respond ONLY with a valid JSON array, no markdown, no explanation:
+[{"index": 1, "serviceName": "Orange", "amount": 10, "currency": "MAD"}]
+If none qualify, return [].`;
 
   try {
     const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -114,22 +156,8 @@ If none are subscriptions, return [].`;
     const data = await res.json();
     let content: string = data.choices?.[0]?.message?.content ?? '[]';
     content = content.replace(/```json/g, '').replace(/```/g, '').trim();
-
-    const parsed = JSON.parse(content) as {
-      index: number;
-      serviceName: string;
-      amount: number;
-      currency: string;
-    }[];
-
-    return parsed
-      .filter((p) => p.index >= 1 && p.index <= emails.length && p.serviceName)
-      .map((p) => ({
-        from: emails[p.index - 1].from,
-        serviceName: p.serviceName,
-        amount: typeof p.amount === 'number' ? p.amount : 0,
-        currency: p.currency || 'USD',
-      }));
+    const parsed = JSON.parse(content);
+    return Array.isArray(parsed) ? parsed : [];
   } catch (err) {
     console.error('AI analysis failed:', err);
     return [];
@@ -144,8 +172,7 @@ export async function scanGmail(accessToken: string) {
   auth.setCredentials({ access_token: accessToken });
   const gmail = google.gmail({ version: 'v1', auth });
 
-  // query موسّع: لغات + كلمات متعددة
-  const query = [
+  const keywords = [
     'subscription', 'receipt', 'invoice', 'billing', 'renewal', 'payment',
     'facture', 'abonnement', 'paiement', 'reçu',
     'rechnung', 'abo',
@@ -155,30 +182,31 @@ export async function scanGmail(accessToken: string) {
 
   const list = await gmail.users.messages.list({
     userId: 'me',
-    q: `newer_than:90d (${query})`,
+    q: `newer_than:90d (${keywords})`,
     maxResults: 50,
   });
 
   const messages = list.data.messages || [];
-  const found = new Map<string, any>();          // الخدمات المكتشفة بالقوائم
-  const unknownEmails: { from: string; subject: string }[] = []; // للـ AI
+  const found = new Map<string, any>();
+  const unknownEmails: { from: string; subject: string; body: string }[] = [];
 
   await Promise.all(
     messages.map(async (msg) => {
       try {
+        // كنجيبو الايميل كامل (full) باش نقدرو نقراو ال body
         const detail = await gmail.users.messages.get({
           userId: 'me',
           id: msg.id!,
-          format: 'metadata',
-          metadataHeaders: ['From', 'Subject'],
+          format: 'full',
         });
-        const headers = detail.data.payload?.headers || [];
+        const payload = detail.data.payload;
+        const headers = payload?.headers || [];
         const from = headers.find((h) => h.name === 'From')?.value || '';
         const subject = headers.find((h) => h.name === 'Subject')?.value || '';
         const domain = extractDomain(from);
         if (!domain) return;
 
-        // المرحلة 1: القوائم
+        // المرحلة 1: القوائم (على المرسل)
         let service = SERVICES[domain];
         if (!service) {
           for (const [key, val] of Object.entries(SERVICES)) {
@@ -187,10 +215,13 @@ export async function scanGmail(accessToken: string) {
         }
 
         if (service) {
-          const money = extractAmountAndCurrency(subject);
-          const label = money && money.currency !== 'USD'
-            ? `${service.name} (${money.currency})`
-            : service.name;
+          const body = extractBodyText(payload);
+          const money =
+            extractAmountAndCurrency(subject) || extractAmountAndCurrency(body);
+          const label =
+            money && money.currency !== 'USD'
+              ? `${service.name} (${money.currency})`
+              : service.name;
           if (!found.has(service.name)) {
             found.set(service.name, {
               serviceName: label,
@@ -202,24 +233,28 @@ export async function scanGmail(accessToken: string) {
             });
           }
         } else {
-          // ما عرفوش بالقوائم → نخليوه لل AI
-          unknownEmails.push({ from, subject });
+          // مجهول → نقراو ال body ونخليوه لل AI
+          const body = extractBodyText(payload);
+          unknownEmails.push({ from, subject, body });
         }
       } catch {}
     })
   );
 
-  // المرحلة 2: AI على الايميلات المجهولة (نحدّو العدد باش ما نطولوش)
-  const aiResults = await analyzeWithAI(unknownEmails.slice(0, 20));
+  // المرحلة 2: AI على المجهولين (نحدّو العدد)
+  const aiResults = await analyzeWithAI(unknownEmails.slice(0, 15));
   for (const r of aiResults) {
-    const label = r.currency !== 'USD' ? `${r.serviceName} (${r.currency})` : r.serviceName;
+    if (!r.serviceName || r.index < 1 || r.index > unknownEmails.length) continue;
+    const src = unknownEmails[r.index - 1];
+    const currency = r.currency || 'USD';
+    const label = currency !== 'USD' ? `${r.serviceName} (${currency})` : r.serviceName;
     if (!found.has(r.serviceName)) {
       found.set(r.serviceName, {
         serviceName: label,
         serviceIcon: '🔔',
         cancelUrl: null,
-        amount: r.amount,
-        emailFrom: r.from.replace(/<.*>/, '').trim() || r.from,
+        amount: typeof r.amount === 'number' ? r.amount : 0,
+        emailFrom: src ? src.from.replace(/<.*>/, '').trim() || src.from : '',
         status: 'active',
       });
     }
