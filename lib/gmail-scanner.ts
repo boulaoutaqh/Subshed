@@ -106,6 +106,7 @@ async function analyzeWithAI(
   emails: { from: string; subject: string; body: string }[]
 ): Promise<{ index: number; serviceName: string; amount: number; currency: string }[]> {
   const apiKey = process.env.GROQ_API_KEY;
+  console.log('[AI] apiKey present:', !!apiKey, '| emails to analyze:', emails.length);
   if (!apiKey || emails.length === 0) return [];
 
   const list = emails
@@ -241,8 +242,11 @@ export async function scanGmail(accessToken: string) {
     })
   );
 
+  console.log('[SCAN] total messages:', messages.length, '| found by lists:', found.size, '| unknown for AI:', unknownEmails.length);
+
   // المرحلة 2: AI على المجهولين (نحدّو العدد)
   const aiResults = await analyzeWithAI(unknownEmails.slice(0, 15));
+  console.log('[AI] results returned:', aiResults.length);
   for (const r of aiResults) {
     if (!r.serviceName || r.index < 1 || r.index > unknownEmails.length) continue;
     const src = unknownEmails[r.index - 1];
