@@ -181,17 +181,24 @@ export async function scanGmail(accessToken: string) {
   const gmail = google.gmail({ version: 'v1', auth });
 
   const keywords = [
+    // English
     'subscription', 'receipt', 'invoice', 'billing', 'renewal', 'payment',
-    'facture', 'abonnement', 'paiement', 'reçu',
-    'rechnung', 'abo',
-    'factura', 'suscripción', 'recibo',
-    'اشتراك', 'فاتورة', 'تجديد',
+    'transaction', 'charged', 'membership', 'auto-renew', 'plan',
+    // French
+    'facture', 'abonnement', 'paiement', 'reçu', 'prélèvement',
+    'transaction', 'montant', 'débit', 'relevé', 'règlement', 'renouvellement',
+    // German
+    'rechnung', 'abo', 'zahlung', 'beleg',
+    // Spanish
+    'factura', 'suscripción', 'recibo', 'pago', 'cargo',
+    // Arabic
+    'اشتراك', 'فاتورة', 'تجديد', 'دفع', 'أداء', 'خلاص',
   ].map((k) => `"${k}"`).join(' OR ');
 
   const list = await gmail.users.messages.list({
     userId: 'me',
-    q: `newer_than:90d (${keywords})`,
-    maxResults: 50,
+    q: `newer_than:365d (${keywords})`,
+    maxResults: 120,
   });
 
   const messages = list.data.messages || [];
@@ -199,54 +206,81 @@ export async function scanGmail(accessToken: string) {
   const allSenders: string[] = [];
   const unknownEmails: { from: string; subject: string; body: string }[] = [];
 
+  // المرحلة 1: نجيبو metadata فقط (خفيف وسريع) لكل الايميلات
+  const metaList: { id: string; from: string; subject: string }[] = [];
   await Promise.all(
     messages.map(async (msg) => {
       try {
-        // كنجيبو الايميل كامل (full) باش نقدرو نقراو ال body
         const detail = await gmail.users.messages.get({
           userId: 'me',
           id: msg.id!,
-          format: 'full',
+          format: 'metadata',
+          metadataHeaders: ['From', 'Subject'],
         });
-        const payload = detail.data.payload;
-        const headers = payload?.headers || [];
+        const headers = detail.data.payload?.headers || [];
         const from = headers.find((h) => h.name === 'From')?.value || '';
         const subject = headers.find((h) => h.name === 'Subject')?.value || '';
-        allSenders.push(`${from} || ${subject}`);
-        const domain = extractDomain(from);
-        if (!domain) return;
+        if (msg.id) metaList.push({ id: msg.id, from, subject });
+      } catch {}
+    })
+  );
 
-        // المرحلة 1: القوائم (على المرسل)
-        let service = SERVICES[domain];
-        if (!service) {
-          for (const [key, val] of Object.entries(SERVICES)) {
-            if (domain.includes(key.split('.')[0])) { service = val; break; }
-          }
-        }
+  const unknownMeta: { id: string; from: string; subject: string }[] = [];
 
-        if (service) {
-          const body = extractBodyText(payload);
-          const money =
-            extractAmountAndCurrency(subject) || extractAmountAndCurrency(body);
-          const label =
-            money && money.currency !== 'USD'
-              ? `${service.name} (${money.currency})`
-              : service.name;
-          if (!found.has(service.name)) {
-            found.set(service.name, {
-              serviceName: label,
-              serviceIcon: service.icon,
-              cancelUrl: service.cancelUrl,
-              amount: money ? money.amount : 0,
-              emailFrom: from.replace(/<.*>/, '').trim() || from,
-              status: 'active',
-            });
-          }
-        } else {
-          // مجهول → نقراو ال body ونخليوه لل AI
-          const body = extractBodyText(payload);
-          unknownEmails.push({ from, subject, body });
-        }
+  for (const m of metaList) {
+    allSenders.push(`${m.from} || ${m.subject}`);
+    const domain = extractDomain(m.from);
+    if (!domain) continue;
+
+    // القوائم على المرسل
+    let service = SERVICES[domain];
+    if (!service) {
+      for (const [key, val] of Object.entries(SERVICES)) {
+        if (domain.includes(key.split('.')[0])) { service = val; break; }
+      }
+    }
+
+    if (service) {
+      const money = extractAmountAndCurrency(m.subject);
+      const label =
+        money && money.currency !== 'USD'
+          ? `${service.name} (${money.currency})`
+          : service.name;
+      if (!found.has(service.name)) {
+        found.set(service.name, {
+          serviceName: label,
+          serviceIcon: service.icon,
+          cancelUrl: service.cancelUrl,
+          amount: money ? money.amount : 0,
+          emailFrom: m.from.replace(/<.*>/, '').trim() || m.from,
+          status: 'active',
+        });
+      }
+    } else {
+      unknownMeta.push(m);
+    }
+  }
+
+  // نرتبو المجهولين على ال subject فقط (لأن مازال ما قرينا body)، ونجيبو body غير لأحسن 15
+  const STRONG_SUBJ = /(facture|paiement|prélèvement|invoice|receipt|reçu|abonnement|subscription|montant|relevé|règlement|rechnung|factura|recibo|فاتورة|اشتراك|أداء|خلاص|MAD|DHS?|درهم|€|\$|£)/i;
+  const rankedMeta = [...unknownMeta].sort((a, b) => {
+    const sa = STRONG_SUBJ.test(a.subject) ? 1 : 0;
+    const sb = STRONG_SUBJ.test(b.subject) ? 1 : 0;
+    return sb - sa;
+  });
+
+  // المرحلة 2: نجيبو body (full) غير لأحسن 18 مرشح
+  const topCandidates = rankedMeta.slice(0, 18);
+  await Promise.all(
+    topCandidates.map(async (m) => {
+      try {
+        const detail = await gmail.users.messages.get({
+          userId: 'me',
+          id: m.id,
+          format: 'full',
+        });
+        const body = extractBodyText(detail.data.payload);
+        unknownEmails.push({ from: m.from, subject: m.subject, body });
       } catch {}
     })
   );
@@ -254,25 +288,12 @@ export async function scanGmail(accessToken: string) {
   console.log('[SCAN] total messages:', messages.length, '| found by lists:', found.size, '| unknown for AI:', unknownEmails.length);
   console.log('[SCAN] ALL senders:', JSON.stringify(allSenders).slice(0, 3000));
 
-  // نرتبو المجهولين: لي فيهم علامات فاتورة قوية (مبلغ بعملة ولا كلمات paiement/facture) يجيو الأول
-  const STRONG = /(facture|paiement|invoice|receipt|reçu|abonnement|subscription|montant|total\s*\(?ttc|MAD|DHS?|درهم|€|\$|£)/i;
-  const scoreEmail = (e: { subject: string; body: string }) => {
-    const text = `${e.subject} ${e.body}`;
-    let s = 0;
-    if (STRONG.test(e.subject)) s += 3;
-    if (STRONG.test(text)) s += 2;
-    if (extractAmountAndCurrency(text)) s += 4; // فيه مبلغ حقيقي بعملة
-    return s;
-  };
-  const ranked = [...unknownEmails].sort((a, b) => scoreEmail(b) - scoreEmail(a));
-
-  // المرحلة 2: AI على أحسن 15 مرشح
-  const aiResults = await analyzeWithAI(ranked.slice(0, 15));
+  // المرحلة 3: AI على المرشحين (unknownEmails فيها غير أحسن 18 مع body)
+  const aiResults = await analyzeWithAI(unknownEmails);
   console.log('[AI] results returned:', aiResults.length);
-  const aiSource = ranked.slice(0, 15);
   for (const r of aiResults) {
-    if (!r.serviceName || r.index < 1 || r.index > aiSource.length) continue;
-    const src = aiSource[r.index - 1];
+    if (!r.serviceName || r.index < 1 || r.index > unknownEmails.length) continue;
+    const src = unknownEmails[r.index - 1];
     const currency = r.currency || 'USD';
     const label = currency !== 'USD' ? `${r.serviceName} (${currency})` : r.serviceName;
     if (!found.has(r.serviceName)) {
