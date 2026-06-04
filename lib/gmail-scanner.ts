@@ -155,8 +155,13 @@ If none qualify, return [].`;
     }
 
     const data = await res.json();
+    console.log('[AI] raw response:', JSON.stringify(data).slice(0, 800));
     let content: string = data.choices?.[0]?.message?.content ?? '[]';
+    console.log('[AI] content:', content.slice(0, 500));
     content = content.replace(/```json/g, '').replace(/```/g, '').trim();
+    // نلقطو أول [ ... ] فالنص باش نتجنبو أي كلام زائد
+    const match = content.match(/\[[\s\S]*\]/);
+    if (match) content = match[0];
     const parsed = JSON.parse(content);
     return Array.isArray(parsed) ? parsed : [];
   } catch (err) {
