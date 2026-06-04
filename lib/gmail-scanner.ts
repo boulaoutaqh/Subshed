@@ -106,7 +106,6 @@ async function analyzeWithAI(
   emails: { from: string; subject: string; body: string }[]
 ): Promise<{ index: number; serviceName: string; amount: number; currency: string }[]> {
   const apiKey = process.env.GROQ_API_KEY;
-  console.log('[AI] apiKey present:', !!apiKey, '| emails to analyze:', emails.length);
   if (!apiKey || emails.length === 0) return [];
 
   const list = emails
@@ -116,7 +115,6 @@ async function analyzeWithAI(
     )
     .join('\n\n');
 
-  console.log('[AI] emails sent to AI:', JSON.stringify(emails.map(e => ({ from: e.from, subject: e.subject, bodyPreview: e.body.slice(0, 200) }))).slice(0, 2000));
 
   const prompt = `You are a subscription & recurring-payment detector. Analyze these emails (any language: English, French, Arabic, etc.).
 
@@ -157,9 +155,7 @@ If none qualify, return [].`;
     }
 
     const data = await res.json();
-    console.log('[AI] raw response:', JSON.stringify(data).slice(0, 800));
     let content: string = data.choices?.[0]?.message?.content ?? '[]';
-    console.log('[AI] content:', content.slice(0, 500));
     content = content.replace(/```json/g, '').replace(/```/g, '').trim();
     // نلقطو أول [ ... ] فالنص باش نتجنبو أي كلام زائد
     const match = content.match(/\[[\s\S]*\]/);
@@ -203,7 +199,6 @@ export async function scanGmail(accessToken: string) {
 
   const messages = list.data.messages || [];
   const found = new Map<string, any>();
-  const allSenders: string[] = [];
   const unknownEmails: { from: string; subject: string; body: string }[] = [];
 
   // المرحلة 1: نجيبو metadata فقط (خفيف وسريع) لكل الايميلات
@@ -228,7 +223,6 @@ export async function scanGmail(accessToken: string) {
   const unknownMeta: { id: string; from: string; subject: string }[] = [];
 
   for (const m of metaList) {
-    allSenders.push(`${m.from} || ${m.subject}`);
     const domain = extractDomain(m.from);
     if (!domain) continue;
 
@@ -285,12 +279,9 @@ export async function scanGmail(accessToken: string) {
     })
   );
 
-  console.log('[SCAN] total messages:', messages.length, '| found by lists:', found.size, '| unknown for AI:', unknownEmails.length);
-  console.log('[SCAN] ALL senders:', JSON.stringify(allSenders).slice(0, 3000));
 
   // المرحلة 3: AI على المرشحين (unknownEmails فيها غير أحسن 18 مع body)
   const aiResults = await analyzeWithAI(unknownEmails);
-  console.log('[AI] results returned:', aiResults.length);
   for (const r of aiResults) {
     if (!r.serviceName || r.index < 1 || r.index > unknownEmails.length) continue;
     const src = unknownEmails[r.index - 1];
