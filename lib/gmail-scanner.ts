@@ -254,12 +254,25 @@ export async function scanGmail(accessToken: string) {
   console.log('[SCAN] total messages:', messages.length, '| found by lists:', found.size, '| unknown for AI:', unknownEmails.length);
   console.log('[SCAN] ALL senders:', JSON.stringify(allSenders).slice(0, 3000));
 
-  // المرحلة 2: AI على المجهولين (نحدّو العدد)
-  const aiResults = await analyzeWithAI(unknownEmails.slice(0, 15));
+  // نرتبو المجهولين: لي فيهم علامات فاتورة قوية (مبلغ بعملة ولا كلمات paiement/facture) يجيو الأول
+  const STRONG = /(facture|paiement|invoice|receipt|reçu|abonnement|subscription|montant|total\s*\(?ttc|MAD|DHS?|درهم|€|\$|£)/i;
+  const scoreEmail = (e: { subject: string; body: string }) => {
+    const text = `${e.subject} ${e.body}`;
+    let s = 0;
+    if (STRONG.test(e.subject)) s += 3;
+    if (STRONG.test(text)) s += 2;
+    if (extractAmountAndCurrency(text)) s += 4; // فيه مبلغ حقيقي بعملة
+    return s;
+  };
+  const ranked = [...unknownEmails].sort((a, b) => scoreEmail(b) - scoreEmail(a));
+
+  // المرحلة 2: AI على أحسن 15 مرشح
+  const aiResults = await analyzeWithAI(ranked.slice(0, 15));
   console.log('[AI] results returned:', aiResults.length);
+  const aiSource = ranked.slice(0, 15);
   for (const r of aiResults) {
-    if (!r.serviceName || r.index < 1 || r.index > unknownEmails.length) continue;
-    const src = unknownEmails[r.index - 1];
+    if (!r.serviceName || r.index < 1 || r.index > aiSource.length) continue;
+    const src = aiSource[r.index - 1];
     const currency = r.currency || 'USD';
     const label = currency !== 'USD' ? `${r.serviceName} (${currency})` : r.serviceName;
     if (!found.has(r.serviceName)) {
