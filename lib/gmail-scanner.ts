@@ -196,6 +196,7 @@ export async function scanGmail(accessToken: string) {
 
   const messages = list.data.messages || [];
   const found = new Map<string, any>();
+  const allSenders: string[] = [];
   const unknownEmails: { from: string; subject: string; body: string }[] = [];
 
   await Promise.all(
@@ -211,6 +212,7 @@ export async function scanGmail(accessToken: string) {
         const headers = payload?.headers || [];
         const from = headers.find((h) => h.name === 'From')?.value || '';
         const subject = headers.find((h) => h.name === 'Subject')?.value || '';
+        allSenders.push(`${from} || ${subject}`);
         const domain = extractDomain(from);
         if (!domain) return;
 
@@ -250,6 +252,7 @@ export async function scanGmail(accessToken: string) {
   );
 
   console.log('[SCAN] total messages:', messages.length, '| found by lists:', found.size, '| unknown for AI:', unknownEmails.length);
+  console.log('[SCAN] ALL senders:', JSON.stringify(allSenders).slice(0, 3000));
 
   // المرحلة 2: AI على المجهولين (نحدّو العدد)
   const aiResults = await analyzeWithAI(unknownEmails.slice(0, 15));
