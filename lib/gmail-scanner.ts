@@ -112,9 +112,11 @@ async function analyzeWithAI(
   const list = emails
     .map(
       (e, i) =>
-        `--- Email ${i + 1} ---\nFrom: ${e.from}\nSubject: ${e.subject}\nContent: ${e.body.slice(0, 600)}`
+        `--- Email ${i + 1} ---\nFrom: ${e.from}\nSubject: ${e.subject}\nContent: ${e.body.slice(0, 1200)}`
     )
     .join('\n\n');
+
+  console.log('[AI] emails sent to AI:', JSON.stringify(emails.map(e => ({ from: e.from, subject: e.subject, bodyPreview: e.body.slice(0, 200) }))).slice(0, 2000));
 
   const prompt = `You are a subscription & recurring-payment detector. Analyze these emails (any language: English, French, Arabic, etc.).
 
