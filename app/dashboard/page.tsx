@@ -83,7 +83,7 @@ export default function Dashboard() {
     setTimeout(() => setToast(''), 4000);
   }
 
-  if (status === 'loading' || loading) {
+  if (loading) {
     return (
       <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center'}}>
         <div style={{textAlign:'center'}}>
