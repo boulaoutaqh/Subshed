@@ -106,7 +106,7 @@ export default function Dashboard() {
             style={{background:'#16C761',color:'#000',border:'none',borderRadius:10,padding:'8px 14px',fontSize:'0.9rem',fontWeight:700,cursor:'pointer'}}>
             {scanning ? '🔍 Scanning...' : '🔍 Scan Now'}
           </button>
-          <button onClick={() => signOut()} style={{background:'transparent',color:'#6B7280',border:'none',cursor:'pointer',fontSize:'0.9rem'}}>Sign Out</button>
+          <button onClick={() => signOut({ callbackUrl: 'https://subshedapp.com' })} style={{background:'transparent',color:'#6B7280',border:'none',cursor:'pointer',fontSize:'0.9rem'}}>Sign Out</button>
         </div>
       </header>
       <main style={{padding:'24px',maxWidth:860,margin:'0 auto'}}>
