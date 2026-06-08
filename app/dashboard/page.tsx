@@ -30,12 +30,17 @@ export default function Dashboard() {
 
   async function load() {
     setLoading(true);
-    const res = await fetch('/api/subscriptions');
-    const data = await res.json();
-    setSubs(data.subscriptions || []);
-    setTotal(data.monthlyTotal || 0);
-    setIsPro(data.isPro || false);
-    setLoading(false);
+    try {
+      const res = await fetch('/api/subscriptions');
+      const data = await res.json();
+      setSubs(data.subscriptions || []);
+      setTotal(data.monthlyTotal || 0);
+      setIsPro(data.isPro || false);
+    } catch (e) {
+      console.error('load error:', e);
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function scan() {
