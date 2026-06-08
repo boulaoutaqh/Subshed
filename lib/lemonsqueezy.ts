@@ -5,7 +5,7 @@ export async function createCheckout(email: string, userId: string) {
       attributes: {
         checkout_data: { email, custom: { user_id: userId } },
         product_options: {
-          redirect_url: `${process.env.NEXTAUTH_URL}/dashboard?success=true`,
+          redirect_url: `${process.env.NEXTAUTH_URL}/success`,
         },
       },
       relationships: {
