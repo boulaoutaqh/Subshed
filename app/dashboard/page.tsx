@@ -9,7 +9,7 @@ interface Sub {
 }
 
 export default function Dashboard() {
-  const { status, update } = useSession();
+  const { status } = useSession();
   const router = useRouter();
   const [subs, setSubs] = useState<Sub[]>([]);
   const [total, setTotal] = useState(0);
@@ -20,7 +20,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login');
-    if (status === 'authenticated') { update(); load(); }
+    if (status === 'authenticated') load();
     if (window.location.search.includes('success=true')) {
       setIsPro(true);
       showToast('🎉 Welcome to Pro! All features unlocked.');
