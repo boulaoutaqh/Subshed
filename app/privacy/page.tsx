@@ -1,6 +1,6 @@
 export default function PrivacyPage() {
   return (
-    <main
+    <div
       style={{
         maxWidth: 800,
         margin: "0 auto",
@@ -116,6 +116,6 @@ export default function PrivacyPage() {
           support@subshedapp.com
         </a>
       </p>
-    </main>
+    </div>
   );
 }
