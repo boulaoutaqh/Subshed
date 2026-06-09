@@ -13,7 +13,7 @@ export default function PrivacyPage() {
         Privacy Policy — Subshed
       </h1>
       <p style={{ color: "#666", marginBottom: "2rem" }}>
-        Last updated: June 3, 2026
+        Last updated: June 9, 2026
       </p>
 
       <p style={{ marginBottom: "2rem" }}>
@@ -27,7 +27,8 @@ export default function PrivacyPage() {
       </h2>
       <p style={{ marginBottom: "1.5rem" }}>
         We access your Gmail inbox metadata to identify recurring subscription
-        charges. We do not store the content of your emails.
+        charges. We do not store the content of your emails. We only collect
+        your name, email address, and subscription data detected from your inbox.
       </p>
 
       <h2 style={{ fontSize: "1.25rem", marginBottom: "0.5rem" }}>
@@ -36,29 +37,84 @@ export default function PrivacyPage() {
       <p style={{ marginBottom: "1.5rem" }}>
         We use your Gmail data solely to detect subscription-related emails and
         display them in your dashboard. We do not sell or share your data with
-        third parties.
+        third parties. Gmail data is never used for advertising or to train AI models.
       </p>
 
       <h2 style={{ fontSize: "1.25rem", marginBottom: "0.5rem" }}>
         3. Data Storage
       </h2>
       <p style={{ marginBottom: "1.5rem" }}>
-        Detected subscriptions are stored securely in our database. You can
-        delete your data at any time by contacting us.
+        Detected subscriptions are stored securely in our database hosted on
+        Supabase with encryption at rest. You can delete your data at any time
+        by contacting us at support@subshedapp.com.
       </p>
 
       <h2 style={{ fontSize: "1.25rem", marginBottom: "0.5rem" }}>
-        4. Google API
+        4. Data Security
+      </h2>
+      <p style={{ marginBottom: "1.5rem" }}>
+        We implement industry-standard security measures to protect your data,
+        including HTTPS encryption for all data in transit, encrypted database
+        storage, and OAuth 2.0 for secure authentication. We do not store your
+        Gmail access tokens beyond the active session. Access to user data is
+        strictly limited to essential operations only.
+      </p>
+
+      <h2 style={{ fontSize: "1.25rem", marginBottom: "0.5rem" }}>
+        5. Data Retention
+      </h2>
+      <p style={{ marginBottom: "1.5rem" }}>
+        We retain your subscription data for as long as your account is active.
+        If you request account deletion, all your personal data will be
+        permanently removed within 30 days.
+      </p>
+
+      <h2 style={{ fontSize: "1.25rem", marginBottom: "0.5rem" }}>
+        6. Your Rights
+      </h2>
+      <p style={{ marginBottom: "1.5rem" }}>
+        You have the right to access, correct, or delete your personal data at
+        any time. You can also revoke Subshed&apos;s access to your Gmail account
+        at any time via your{" "}
+        
+          href="https://myaccount.google.com/permissions"
+          target="_blank"
+          rel="noreferrer"
+          style={{ color: "#16C761" }}
+        >
+          Google Account permissions
+        </a>
+        .
+      </p>
+
+      <h2 style={{ fontSize: "1.25rem", marginBottom: "0.5rem" }}>
+        7. Third-Party Services
+      </h2>
+      <p style={{ marginBottom: "1.5rem" }}>
+        We use the following third-party services: Google OAuth 2.0 for
+        authentication, Supabase for database storage, and Lemon Squeezy for
+        payment processing. Each service has its own privacy policy and data
+        protection practices.
+      </p>
+
+      <h2 style={{ fontSize: "1.25rem", marginBottom: "0.5rem" }}>
+        8. Google API
       </h2>
       <p style={{ marginBottom: "1.5rem" }}>
         Our use of Google API data is limited to reading email metadata to
-        identify subscriptions. We comply with Google API Services User Data
-        Policy, including the Limited Use requirements.
+        identify subscriptions. We comply with the Google API Services User Data
+        Policy, including the Limited Use requirements. We do not transfer Google
+        user data to third parties except as necessary to provide our service.
       </p>
 
-      <h2 style={{ fontSize: "1.25rem", marginBottom: "0.5rem" }}>5. Contact</h2>
+      <h2 style={{ fontSize: "1.25rem", marginBottom: "0.5rem" }}>
+        9. Contact
+      </h2>
       <p style={{ marginBottom: "1.5rem" }}>
-        For any questions, contact us at support@subshedapp.com
+        For any questions or data requests, contact us at{" "}
+        <a href="mailto:support@subshedapp.com" style={{ color: "#16C761" }}>
+          support@subshedapp.com
+        </a>
       </p>
     </main>
   );
