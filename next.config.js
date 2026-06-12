@@ -6,13 +6,7 @@ module.exports = {
       {
         source: '/:path*',
         has: [{ type: 'host', value: 'subshed.vercel.app' }],
-        destination: 'https://subshedapp.com/:path*',
-        permanent: true,
-      },
-      {
-        source: '/:path*',
-        has: [{ type: 'host', value: 'www.subshedapp.com' }],
-        destination: 'https://subshedapp.com/:path*',
+        destination: 'https://www.subshedapp.com/:path*',
         permanent: true,
       },
     ];
