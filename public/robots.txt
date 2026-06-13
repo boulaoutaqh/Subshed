@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+Disallow: /api/auth/
+Disallow: /dashboard
+
+User-agent: Googlebot
+Allow: /
+Disallow: /api/auth/
+Disallow: /dashboard
+
+Sitemap: https://subshedapp.com/sitemap.xml 
