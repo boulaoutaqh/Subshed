@@ -17,7 +17,16 @@ module.exports = {
           },
           {
             key: 'Content-Security-Policy',
-            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; connect-src 'self' https://api.lemonsqueezy.com https://*.supabase.co;",
+            value: [
+              "default-src 'self'",
+              "script-src 'self' 'unsafe-inline' https://accounts.google.com",
+              "style-src 'self' 'unsafe-inline' https://accounts.google.com https://fonts.googleapis.com",
+              "img-src 'self' data: https:",
+              "font-src 'self' https://fonts.gstatic.com",
+              "connect-src 'self' https://api.lemonsqueezy.com https://*.supabase.co https://accounts.google.com https://oauth2.googleapis.com https://www.googleapis.com",
+              "frame-src https://accounts.google.com",
+              "frame-ancestors 'none'",
+            ].join('; '),
           },
         ],
       },
