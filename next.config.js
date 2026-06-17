@@ -40,7 +40,7 @@ module.exports = {
       {
         source: '/:path*',
         has: [{ type: 'host', value: 'subshed.vercel.app' }],
-        destination: 'https://www.subshedapp.com/:path*',
+        destination: 'https://subshedapp.com/:path*',
         permanent: true,
       },
     ];
